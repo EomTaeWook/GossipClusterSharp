@@ -5,8 +5,7 @@ namespace GossipClusterSharp.Gossip
 {
     internal class GossipService
     {
-        private string _representativeNode;
-        private IGossipTransport _gossipTransport;
+        private readonly IGossipTransport _gossipTransport;
         private readonly INodeRegistry _nodeRegistry;
         private Action<GossipMessage> _receiveMessageCallback;
         public GossipService(IGossipTransport gossipTransports, INodeRegistry nodeRegistry)
@@ -30,12 +29,15 @@ namespace GossipClusterSharp.Gossip
 
         public async Task SendMessageToRandomNodeAsync(GossipMessage message)
         {
-            var targetNode = _nodeRegistry.GetRandomNode();
-            if (targetNode == null)
+            var targetNodes = _nodeRegistry.GetRandomNode();
+            if (targetNodes == null)
             {
                 return;
             }
-            await _gossipTransport.SendMessageAsync(message, targetNode.Endpoint);
+            foreach (var targetNode in targetNodes)
+            {
+                await _gossipTransport.SendMessageAsync(message, targetNode.Endpoint);
+            }
         }
 
         public async Task BroadcastToAllNodesAsync(GossipMessage message)

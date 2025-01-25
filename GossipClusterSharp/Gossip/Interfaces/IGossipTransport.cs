@@ -8,7 +8,5 @@
         Task StartListeningAsync();
 
         event GossipMessageHandler MessageReceived;
-
-
     }
 }

@@ -8,7 +8,7 @@ namespace GossipClusterSharp.Cluster
         void RemoveNode(string nodeId);
         IEnumerable<INodeState> GetAllNodeStates();
         INodeState GetNodeState(string nodeId);
-        INodeState GetRandomNode();
+        List<INodeState> GetRandomNode();
         int GetAliveNodeCount();
         void UpdateNodeState(string nodeId, bool isAlive);
     }

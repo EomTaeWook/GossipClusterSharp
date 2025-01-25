@@ -1,5 +1,6 @@
 ﻿using GossipClusterSharp.Exceptions;
 using GossipClusterSharp.Gossip.Interfaces;
+using GossipClusterSharp.Internals;
 
 namespace GossipClusterSharp.Cluster
 {
@@ -38,15 +39,17 @@ namespace GossipClusterSharp.Cluster
 
             return node;
         }
-        public INodeState GetRandomNode()
+        public List<INodeState> GetRandomNode()
         {
             if (_nodeStates.Count == 0)
             {
                 return null;
             }
-            var random = new Random();
-            var index = random.Next(_nodeStates.Count);
-            return _nodeStates.Values.ElementAt(index);
+
+            var availableCount = Math.Min(2, _nodeStates.Count);
+            List<INodeState> nodes = new(_nodeStates.Values);
+            FisherYatesShuffle.Shuffle(nodes);
+            return nodes.Take(availableCount).ToList();
         }
         public int GetAliveNodeCount()
         {

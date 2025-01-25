@@ -30,9 +30,13 @@ namespace GossipClusterSharp.Gossip
                         MessageReceived?.Invoke(message);
                     }
                 }
-                catch (Exception ex)
+                catch (ObjectDisposedException)
                 {
-                    Console.WriteLine($"Error in StartListeningAsync: {ex.Message}");
+                    break;
+                }
+                catch (SocketException socketException)
+                {
+                    break;
                 }
             }
         }
