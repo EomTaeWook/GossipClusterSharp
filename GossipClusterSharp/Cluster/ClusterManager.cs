@@ -4,13 +4,13 @@ namespace GossipClusterSharp.Cluster
 {
     internal class ClusterManager
     {
-        private readonly List<GossipService> _gossipServices;
         private readonly INodeRegistry _nodeRegistry;
         private string _currentMasterNode;
-        public ClusterManager(List<GossipService> gossipServices, INodeRegistry nodeRegistry)
+        private List<GossipService> _gossipServices;
+        public ClusterManager(INodeRegistry nodeRegistry, List<GossipService> gossipServices)
         {
-            _gossipServices = gossipServices;
             _nodeRegistry = nodeRegistry;
+            _gossipServices = gossipServices;
         }
 
         public void InitializeClusterAsync()
@@ -21,14 +21,11 @@ namespace GossipClusterSharp.Cluster
         {
             foreach (var gossipService in _gossipServices)
             {
-                _ = gossipService.StartListeningAsync(async message =>
-                {
-                    await HandleMessageAsync(message);
-                });
+                _ = gossipService.StartListeningAsync();
             }
             return Task.CompletedTask;
         }
-        private async Task HandleMessageAsync(GossipMessage message)
+        private async Task OnMessageReceived(GossipMessage message)
         {
             if (Enum.TryParse<GossipType>(message.MessageType, out GossipType gossipType) == false)
             {

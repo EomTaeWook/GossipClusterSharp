@@ -3,28 +3,28 @@ using GossipClusterSharp.Gossip.Interfaces;
 
 namespace GossipClusterSharp.Gossip
 {
-    internal class GossipService
+    public class GossipService
     {
         private readonly IGossipTransport _gossipTransport;
         private readonly INodeRegistry _nodeRegistry;
-        private Action<GossipMessage> _receiveMessageCallback;
-        public GossipService(IGossipTransport gossipTransports, INodeRegistry nodeRegistry)
+
+        public GossipService(IGossipTransport gossipTransports,
+            INodeRegistry nodeRegistry)
         {
             _nodeRegistry = nodeRegistry;
             _gossipTransport = gossipTransports;
-        }
 
-        public Task StartListeningAsync(Action<GossipMessage> receiveMessageCallback)
-        {
-            _receiveMessageCallback = receiveMessageCallback;
             _gossipTransport.MessageReceived += OnMessageReceived;
-
-            return _gossipTransport.StartListeningAsync();
         }
 
         private void OnMessageReceived(GossipMessage message)
         {
-            _receiveMessageCallback?.Invoke(message);
+
+        }
+
+        public Task StartListeningAsync()
+        {
+            return _gossipTransport.StartListeningAsync();
         }
 
         public async Task SendMessageToRandomNodeAsync(GossipMessage message)

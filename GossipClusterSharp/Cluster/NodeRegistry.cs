@@ -4,7 +4,7 @@ using GossipClusterSharp.Internals;
 
 namespace GossipClusterSharp.Cluster
 {
-    internal class NodeRegistry
+    public class NodeRegistry
     {
         private readonly Dictionary<string, INodeState> _nodeStates = new();
 

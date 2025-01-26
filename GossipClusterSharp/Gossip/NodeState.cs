@@ -10,7 +10,7 @@ namespace GossipClusterSharp.Gossip
         public int Priority { get; set; }
         public string Endpoint { get; set; }
         public long LastUpdatedTicks { get; private set; }
-        public NodeState(string nodeId, int priority, string endPoint)
+        public NodeState(string nodeId, string endPoint, int priority)
         {
             NodeId = nodeId;
             Priority = priority;
