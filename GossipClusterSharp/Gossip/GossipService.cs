@@ -3,11 +3,14 @@ using GossipClusterSharp.Gossip.Interfaces;
 
 namespace GossipClusterSharp.Gossip
 {
+    public delegate void GossipMessageHandler(GossipMessage message);
+
     public class GossipService
     {
         private readonly IGossipTransport _gossipTransport;
         private readonly INodeRegistry _nodeRegistry;
 
+        public event GossipMessageHandler MessageReceived;
         public GossipService(IGossipTransport gossipTransports,
             INodeRegistry nodeRegistry)
         {
@@ -19,9 +22,27 @@ namespace GossipClusterSharp.Gossip
 
         private void OnMessageReceived(GossipMessage message)
         {
+            if (Enum.TryParse<GossipType>(message.MessageType, out GossipType gossipType) == false)
+            {
+                MessageReceived?.Invoke(message);
+                return;
+            }
 
+            switch (gossipType)
+            {
+                case GossipType.StateUpdate:
+                    UpdateNodeState(message.NodeId, true);
+                    break;
+                case GossipType.MasterFailure:
+                    break;
+                default:
+                    break;
+            }
         }
-
+        private void UpdateNodeState(string nodeId, bool isAlive)
+        {
+            _nodeRegistry.UpdateNodeState(nodeId, isAlive);
+        }
         public Task StartListeningAsync()
         {
             return _gossipTransport.StartListeningAsync();

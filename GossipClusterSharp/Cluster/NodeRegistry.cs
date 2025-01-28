@@ -4,25 +4,21 @@ using GossipClusterSharp.Internals;
 
 namespace GossipClusterSharp.Cluster
 {
-    public class NodeRegistry
+    public class NodeRegistry : INodeRegistry
     {
         private readonly Dictionary<string, INodeState> _nodeStates = new();
 
         public void RegisterNode(INodeState node)
         {
-            if (_nodeStates.ContainsKey(node.NodeId))
+            if (_nodeStates.TryAdd(node.NodeId, node) == false)
             {
                 throw new NodeAlreadyExistsException(node.NodeId);
             }
-            _nodeStates[node.NodeId] = node;
         }
 
         public void RemoveNode(string nodeId)
         {
-            if (!_nodeStates.Remove(nodeId))
-            {
-                throw new NodeNotFoundException(nodeId);
-            }
+            _nodeStates.Remove(nodeId);
         }
 
         public IEnumerable<INodeState> GetAllNodeStates()
@@ -32,10 +28,7 @@ namespace GossipClusterSharp.Cluster
 
         public INodeState GetNodeState(string nodeId)
         {
-            if (_nodeStates.TryGetValue(nodeId, out INodeState node) == false)
-            {
-                throw new NodeNotFoundException(nodeId);
-            }
+            _nodeStates.TryGetValue(nodeId, out INodeState node);
 
             return node;
         }

@@ -4,6 +4,7 @@
     {
         None,
 
+        Heartbeat,
         MasterFailure,
         MasterElection,
         StateUpdate,

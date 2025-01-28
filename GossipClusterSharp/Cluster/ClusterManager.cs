@@ -1,11 +1,12 @@
 ﻿using GossipClusterSharp.Gossip;
+using GossipClusterSharp.Gossip.Interfaces;
 
 namespace GossipClusterSharp.Cluster
 {
-    internal class ClusterManager
+    public class ClusterManager
     {
         private readonly INodeRegistry _nodeRegistry;
-        private string _currentMasterNode;
+        private INodeState _currentMasterNode;
         private List<GossipService> _gossipServices;
         public ClusterManager(INodeRegistry nodeRegistry, List<GossipService> gossipServices)
         {
@@ -25,29 +26,6 @@ namespace GossipClusterSharp.Cluster
             }
             return Task.CompletedTask;
         }
-        private async Task OnMessageReceived(GossipMessage message)
-        {
-            if (Enum.TryParse<GossipType>(message.MessageType, out GossipType gossipType) == false)
-            {
-                return;
-            }
-
-            switch (gossipType)
-            {
-                case GossipType.StateUpdate:
-                    //UpdateNodeState(message.NodeId, )
-                    break;
-
-                case GossipType.MasterFailure:
-                    await ElectMasterNodeAsync();
-                    break;
-
-                default:
-                    break;
-            }
-
-            await Task.CompletedTask;
-        }
         private async Task ElectMasterNodeAsync()
         {
             var aliveNodes = _nodeRegistry.GetAllNodeStates()
@@ -55,14 +33,14 @@ namespace GossipClusterSharp.Cluster
                                           .OrderBy(n => n.Priority)
                                           .ToList();
 
-            if (!aliveNodes.Any())
+            if (aliveNodes.Count == 0)
             {
-                Console.WriteLine("No alive nodes available for master election.");
+                Console.WriteLine("no alive nodes available for master election.");
                 return;
             }
 
             var newMaster = aliveNodes.First();
-            _currentMasterNode = newMaster.NodeId;
+            _currentMasterNode = newMaster;
 
             var message = new GossipMessage(newMaster.NodeId, GossipType.MasterElection.ToString());
             foreach (var gossipService in _gossipServices)
@@ -70,9 +48,10 @@ namespace GossipClusterSharp.Cluster
                 await gossipService.BroadcastToAllNodesAsync(message);
             }
         }
-        private void UpdateNodeState(string nodeId, bool isAlive)
+        public INodeState GetCurrentMasterNode()
         {
-            _nodeRegistry.UpdateNodeState(nodeId, isAlive);
+            return _currentMasterNode;
         }
+
     }
 }

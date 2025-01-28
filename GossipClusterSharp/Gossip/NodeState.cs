@@ -10,15 +10,23 @@ namespace GossipClusterSharp.Gossip
         public int Priority { get; set; }
         public string Endpoint { get; set; }
         public long LastUpdatedTicks { get; private set; }
+
+        public long LastHeartbeat { get; private set; }
+
         public NodeState(string nodeId, string endPoint, int priority)
         {
             NodeId = nodeId;
             Priority = priority;
             Endpoint = endPoint;
         }
-
+        public void IncrementHeartbeat()
+        {
+            LastHeartbeat++;
+            LastUpdatedTicks = DateTime.UtcNow.Ticks;
+        }
         public void UpdateState(bool isAlive, bool isMaster)
         {
+
             IsAlive = isAlive;
             IsMaster = isMaster;
             LastUpdatedTicks = DateTime.UtcNow.Ticks;

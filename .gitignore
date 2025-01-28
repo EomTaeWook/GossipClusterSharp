@@ -1,3 +1,5 @@
 .vs/
 GossipClusterSharp/bin/
 GossipClusterSharp/obj/
+App/bin/
+App/obj/

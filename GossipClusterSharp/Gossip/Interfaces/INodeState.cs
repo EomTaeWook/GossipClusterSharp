@@ -7,5 +7,7 @@
         bool IsMaster { get; set; }
         public int Priority { get; }
         public string Endpoint { get; }
+
+        public long LastHeartbeat { get; }
     }
 }
