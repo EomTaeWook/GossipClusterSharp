@@ -1,16 +1,39 @@
-﻿namespace GossipClusterSharp.Gossip
+﻿using System.Text.Json;
+
+namespace GossipClusterSharp.Gossip
 {
+    public interface IGossipPayload
+    {
+
+    }
     public class GossipMessage
     {
         public string MessageType { get; private set; }
         public DateTime Timestamp { get; private set; }
-        public string Payload { get; private set; }
-
-        public GossipMessage(string messageType, string payload = "")
+        public string PayloadJson { get; set; }
+        public GossipMessage(string messageType, string payloadJson)
         {
             MessageType = messageType;
             Timestamp = DateTime.UtcNow;
-            Payload = payload;
+
+            PayloadJson = payloadJson;
         }
+        public T GetPayload<T>() where T : IGossipPayload
+        {
+            return JsonSerializer.Deserialize<T>(PayloadJson);
+        }
+        public static GossipMessage FromPayload<T>(string messageType, T payload) where T : IGossipPayload
+        {
+            return new GossipMessage(messageType, JsonSerializer.Serialize(payload));
+        }
+    }
+
+    public class PingMessage : IGossipPayload
+    {
+        public string SenderNodeId { get; set; }
+    }
+    public class PongMessage : IGossipPayload
+    {
+        public string SenderNodeId { get; set; }
     }
 }

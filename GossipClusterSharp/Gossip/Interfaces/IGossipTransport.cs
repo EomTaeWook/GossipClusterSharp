@@ -6,6 +6,6 @@
 
         Task StartListeningAsync();
 
-        internal event GossipMessageHandler MessageReceived;
+        public event GossipMessageHandler MessageReceived;
     }
 }

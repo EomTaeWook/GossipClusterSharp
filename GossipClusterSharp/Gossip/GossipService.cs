@@ -1,18 +1,18 @@
 ﻿using GossipClusterSharp.Cluster;
 using GossipClusterSharp.Gossip.Interfaces;
+using System.Net;
+using System.Text;
+using System.Text.Json;
 
 namespace GossipClusterSharp.Gossip
 {
-    public delegate void GossipMessageHandler(GossipMessage message);
+    public delegate Task GossipMessageHandler(byte[] message, IPEndPoint senderEndPoint);
 
     public class GossipService
     {
         private readonly IGossipTransport _gossipTransport;
         private readonly INodeRegistry _nodeRegistry;
 
-        public event GossipMessageHandler MessageReceived;
-
-        private string _localNodeId;
         public GossipService(
             IGossipTransport gossipTransports,
             INodeRegistry nodeRegistry)
@@ -20,14 +20,25 @@ namespace GossipClusterSharp.Gossip
             _nodeRegistry = nodeRegistry;
             _gossipTransport = gossipTransports;
 
-            _gossipTransport.MessageReceived += OnMessageReceived;
+            _gossipTransport.MessageReceived += OnMessageReceivedAsync;
         }
 
-        private void OnMessageReceived(GossipMessage message)
+        private async Task OnMessageReceivedAsync(byte[] message, IPEndPoint senderEndPoint)
         {
-            if (Enum.TryParse<GossipType>(message.MessageType, out GossipType gossipType) == false)
+            var json = Encoding.UTF8.GetString(message);
+            GossipMessage gossipMessage;
+            try
             {
-                MessageReceived?.Invoke(message);
+                gossipMessage = JsonSerializer.Deserialize<GossipMessage>(json);
+            }
+            catch (Exception ex)
+            {
+                return;
+            }
+
+            if (Enum.TryParse<GossipType>(gossipMessage.MessageType, out GossipType gossipType) == false)
+            {
+                //MessageReceived?.Invoke(message);
                 return;
             }
 
@@ -35,14 +46,35 @@ namespace GossipClusterSharp.Gossip
             {
                 case GossipType.Ping:
 
+                    var pingMessage = gossipMessage.GetPayload<PingMessage>();
+
+                    var pongMessage = GossipMessage.FromPayload(GossipType.Pong.ToString(), new PongMessage()
+                    {
+                        SenderNodeId = pingMessage.SenderNodeId
+                    });
+
+                    await _gossipTransport.SendMessageAsync(pongMessage, senderEndPoint.ToString());
+
+                    break;
+
+                case GossipType.Pong:
+                    var pongPayload = gossipMessage.GetPayload<PongMessage>();
+                    if (pongPayload != null)
+                    {
+                        UpdateHeartBeat(pongPayload.SenderNodeId);
+                    }
                     break;
                 default:
                     break;
             }
         }
-        private void UpdateHeartBeat()
+        private void UpdateHeartBeat(string nodeId)
         {
-
+            var node = _nodeRegistry.GetNodeState(nodeId);
+            if (node != null)
+            {
+                node.IncrementHeartbeat();
+            }
         }
         private async Task StartPingingAsync()
         {

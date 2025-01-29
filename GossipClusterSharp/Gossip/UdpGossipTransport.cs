@@ -23,9 +23,7 @@ namespace GossipClusterSharp.Gossip
                 try
                 {
                     var result = await _udpClient.ReceiveAsync();
-                    var messageJson = Encoding.UTF8.GetString(result.Buffer);
-                    var message = JsonSerializer.Deserialize<GossipMessage>(messageJson);
-                    MessageReceived?.Invoke(message);
+                    MessageReceived?.Invoke(result.Buffer, result.RemoteEndPoint);
                 }
                 catch (SocketException socketException)
                 {
