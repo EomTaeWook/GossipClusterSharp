@@ -1,21 +1,17 @@
-﻿using GossipClusterSharp.Gossip.Interfaces;
-
-namespace GossipClusterSharp.Gossip
+﻿namespace GossipClusterSharp.Gossip
 {
-    public class NodeState : INodeState
+    public class NodeState
     {
-        public string NodeId { get; set; }
         public bool IsAlive { get; set; } = true;
         public bool IsMaster { get; set; }
         public int Priority { get; set; }
         public string Endpoint { get; set; }
-        public long LastUpdatedTicks { get; private set; }
-
-        public long LastHeartbeat { get; private set; }
-
-        public NodeState(string nodeId, string endPoint, int priority)
+        public long LastUpdatedTicks { get; set; }
+        public long LastHeartbeat { get; set; }
+        public string NodeId { get; set; }
+        public bool IsSuspected { get; set; }
+        public NodeState(string endPoint, int priority)
         {
-            NodeId = nodeId;
             Priority = priority;
             Endpoint = endPoint;
         }
@@ -23,10 +19,11 @@ namespace GossipClusterSharp.Gossip
         {
             LastHeartbeat++;
             LastUpdatedTicks = DateTime.UtcNow.Ticks;
+            IsSuspected = false;
         }
+
         public void UpdateState(bool isAlive, bool isMaster)
         {
-
             IsAlive = isAlive;
             IsMaster = isMaster;
             LastUpdatedTicks = DateTime.UtcNow.Ticks;

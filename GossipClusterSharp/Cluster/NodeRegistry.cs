@@ -1,14 +1,14 @@
 ﻿using GossipClusterSharp.Exceptions;
-using GossipClusterSharp.Gossip.Interfaces;
+using GossipClusterSharp.Gossip;
 using GossipClusterSharp.Internals;
 
 namespace GossipClusterSharp.Cluster
 {
     public class NodeRegistry : INodeRegistry
     {
-        private readonly Dictionary<string, INodeState> _nodeStates = new();
+        private readonly Dictionary<string, NodeState> _nodeStates = new();
 
-        public void RegisterNode(INodeState node)
+        public void RegisterNode(NodeState node)
         {
             if (_nodeStates.TryAdd(node.NodeId, node) == false)
             {
@@ -21,18 +21,18 @@ namespace GossipClusterSharp.Cluster
             _nodeStates.Remove(nodeId);
         }
 
-        public IEnumerable<INodeState> GetAllNodeStates()
+        public IEnumerable<NodeState> GetAllNodeStates()
         {
             return _nodeStates.Values;
         }
 
-        public INodeState GetNodeState(string nodeId)
+        public NodeState GetNodeState(string nodeId)
         {
-            _nodeStates.TryGetValue(nodeId, out INodeState node);
+            _nodeStates.TryGetValue(nodeId, out NodeState node);
 
             return node;
         }
-        public List<INodeState> GetRandomNode()
+        public List<NodeState> GetRandomNode()
         {
             if (_nodeStates.Count == 0)
             {
@@ -40,21 +40,13 @@ namespace GossipClusterSharp.Cluster
             }
 
             var availableCount = Math.Min(2, _nodeStates.Count);
-            List<INodeState> nodes = new(_nodeStates.Values);
+            List<NodeState> nodes = new(_nodeStates.Values);
             FisherYatesShuffle.Shuffle(nodes);
             return nodes.Take(availableCount).ToList();
         }
         public int GetAliveNodeCount()
         {
             return _nodeStates.Values.Count(n => n.IsAlive);
-        }
-        public void UpdateNodeState(string nodeId, bool isAlive)
-        {
-            if (_nodeStates.TryGetValue(nodeId, out var node) == false)
-            {
-                throw new NodeNotFoundException(nodeId);
-            }
-            node.IsAlive = isAlive;
         }
     }
 }

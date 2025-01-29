@@ -1,15 +1,14 @@
-﻿using GossipClusterSharp.Gossip.Interfaces;
+﻿using GossipClusterSharp.Gossip;
 
 namespace GossipClusterSharp.Cluster
 {
     public interface INodeRegistry
     {
-        void RegisterNode(INodeState node);
+        void RegisterNode(NodeState node);
         void RemoveNode(string nodeId);
-        IEnumerable<INodeState> GetAllNodeStates();
-        INodeState GetNodeState(string nodeId);
-        List<INodeState> GetRandomNode();
+        IEnumerable<NodeState> GetAllNodeStates();
+        NodeState GetNodeState(string nodeId);
+        List<NodeState> GetRandomNode();
         int GetAliveNodeCount();
-        void UpdateNodeState(string nodeId, bool isAlive);
     }
 }

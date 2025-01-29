@@ -4,10 +4,10 @@
     {
         None,
 
-        Heartbeat,
-        MasterFailure,
+        Ping,
+        Pong,
         MasterElection,
-        StateUpdate,
-        ClusterElection,
+
+        Max
     }
 }

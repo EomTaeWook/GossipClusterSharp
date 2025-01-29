@@ -11,7 +11,10 @@ namespace GossipClusterSharp.Gossip
         private readonly INodeRegistry _nodeRegistry;
 
         public event GossipMessageHandler MessageReceived;
-        public GossipService(IGossipTransport gossipTransports,
+
+        private string _localNodeId;
+        public GossipService(
+            IGossipTransport gossipTransports,
             INodeRegistry nodeRegistry)
         {
             _nodeRegistry = nodeRegistry;
@@ -30,18 +33,20 @@ namespace GossipClusterSharp.Gossip
 
             switch (gossipType)
             {
-                case GossipType.StateUpdate:
-                    UpdateNodeState(message.NodeId, true);
-                    break;
-                case GossipType.MasterFailure:
+                case GossipType.Ping:
+
                     break;
                 default:
                     break;
             }
         }
-        private void UpdateNodeState(string nodeId, bool isAlive)
+        private void UpdateHeartBeat()
         {
-            _nodeRegistry.UpdateNodeState(nodeId, isAlive);
+
+        }
+        private async Task StartPingingAsync()
+        {
+
         }
         public Task StartListeningAsync()
         {
@@ -73,10 +78,10 @@ namespace GossipClusterSharp.Gossip
             }
         }
 
-        public async Task BroadcastMasterFailureAsync(string masterNodeId)
-        {
-            var message = new GossipMessage(masterNodeId, GossipType.MasterFailure.ToString());
-            await BroadcastToAllNodesAsync(message);
-        }
+        //public async Task BroadcastMasterFailureAsync(string masterNodeId)
+        //{
+        //    var message = new GossipMessage(masterNodeId, GossipType.MasterFailure.ToString());
+        //    await BroadcastToAllNodesAsync(message);
+        //}
     }
 }

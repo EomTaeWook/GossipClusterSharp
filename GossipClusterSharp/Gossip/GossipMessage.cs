@@ -2,15 +2,15 @@
 {
     public class GossipMessage
     {
-        public string NodeId { get; }
-        public string MessageType { get; }
-        public DateTime Timestamp { get; }
+        public string MessageType { get; private set; }
+        public DateTime Timestamp { get; private set; }
+        public string Payload { get; private set; }
 
-        public GossipMessage(string nodeId, string messageType)
+        public GossipMessage(string messageType, string payload = "")
         {
-            NodeId = nodeId;
             MessageType = messageType;
             Timestamp = DateTime.UtcNow;
+            Payload = payload;
         }
     }
 }
