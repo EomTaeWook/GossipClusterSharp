@@ -16,7 +16,7 @@ namespace App.Node
         }
         public Task StartAsync(int serverPort)
         {
-            Start(serverPort, ProtocolType.Udp);
+            Start(serverPort);
 
             return Task.CompletedTask;
         }

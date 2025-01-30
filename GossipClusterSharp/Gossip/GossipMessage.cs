@@ -30,10 +30,14 @@ namespace GossipClusterSharp.Gossip
 
     public class PingMessage : IGossipPayload
     {
-        public string SenderNodeId { get; set; }
+        public string TargetNodeId { get; set; }
     }
     public class PongMessage : IGossipPayload
     {
-        public string SenderNodeId { get; set; }
+        public string TargetNodeId { get; set; }
+    }
+    public class MasterElectionMessage : IGossipPayload
+    {
+        public string MasterNodeId { get; set; }
     }
 }

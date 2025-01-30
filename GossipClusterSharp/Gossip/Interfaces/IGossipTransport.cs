@@ -2,7 +2,7 @@
 {
     public interface IGossipTransport
     {
-        Task SendMessageAsync(GossipMessage message, string targetNodeId);
+        Task SendMessageAsync(GossipMessage message, string targetEndPoint);
 
         Task StartListeningAsync();
 

@@ -13,9 +13,14 @@ namespace GossipClusterSharp.Cluster
             _gossipServices = gossipServices;
         }
 
-        public void InitializeClusterAsync()
+        public async Task InitializeClusterAsync()
         {
-            _ = ElectMasterNodeAsync();
+            foreach (var gossipService in _gossipServices)
+            {
+                _ = gossipService.StartListeningAsync();
+            }
+
+            await ElectMasterNodeAsync();
         }
         public void DetectFailures()
         {
@@ -54,10 +59,9 @@ namespace GossipClusterSharp.Cluster
                                           .OrderBy(n => n.Priority)
                                           .ToList();
 
-            if (!aliveNodes.Any())
+            if (aliveNodes.Count == 0)
             {
-                Console.WriteLine("No alive nodes available for master election. Cluster in DEGRADED state.");
-                return;
+                throw new InvalidOperationException("no alive nodes available for master election. cluster in DEGRADED state.");
             }
 
             var newMaster = aliveNodes.First();

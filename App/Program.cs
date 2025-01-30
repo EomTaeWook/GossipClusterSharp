@@ -27,8 +27,7 @@ var gossipService2 = new GossipService(gossipTransport2, nodeRegistry);
 
 // ClusterManager 생성 및 초기화
 var clusterManager = new ClusterManager(nodeRegistry, [gossipService1, gossipService2]);
-
-
+_ = clusterManager.InitializeClusterAsync();
 
 var node1 = new TestServer(configuration, gossipService1);
 var node2 = new TestServer(configuration, gossipService2);
