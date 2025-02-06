@@ -15,10 +15,11 @@
             Priority = priority;
             Endpoint = endPoint;
         }
-        public void IncrementHeartbeat()
+        public void UpdateHeartbeat()
         {
             LastUpdatedTicks = DateTime.UtcNow.Ticks;
             IsSuspected = false;
+            IsAlive = true;
         }
         public bool IsTimeout(long timeoutTicks)
         {

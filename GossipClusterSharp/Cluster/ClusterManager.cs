@@ -7,6 +7,7 @@ namespace GossipClusterSharp.Cluster
         private readonly INodeRegistry _nodeRegistry;
         private NodeState _currentMasterNode;
         private List<GossipService> _gossipServices;
+        private static readonly long _suspectTimeoutTicks = TimeSpan.FromSeconds(30).Ticks;
         public ClusterManager(INodeRegistry nodeRegistry, List<GossipService> gossipServices)
         {
             _nodeRegistry = nodeRegistry;
@@ -21,27 +22,8 @@ namespace GossipClusterSharp.Cluster
             }
 
             await ElectMasterNodeAsync();
-        }
-        public void DetectFailures()
-        {
-            foreach (var node in _nodeRegistry.GetAllNodeStates())
-            {
-                double elapsedSeconds = new TimeSpan(DateTime.UtcNow.Ticks - node.LastUpdatedTicks).TotalSeconds;
-                if (node.IsSuspected == false && elapsedSeconds > 10)
-                {
-                    node.IsSuspected = true;
-                }
 
-                if (node.IsSuspected && elapsedSeconds > 20)
-                {
-                    node.IsAlive = false;
-
-                    if (_currentMasterNode != null && _currentMasterNode.NodeId == node.NodeId)
-                    {
-                        _ = ElectMasterNodeAsync();
-                    }
-                }
-            }
+            await MonitorNodesAsync();
         }
 
         private Task StartListeningAsync()
@@ -73,5 +55,35 @@ namespace GossipClusterSharp.Cluster
                 await gossipService.BroadcastToAllNodesAsync(message);
             }
         }
+
+        private async Task MonitorNodesAsync()
+        {
+            while (true)
+            {
+                await DetectFailuresAsync();
+                await Task.Delay(5000);
+            }
+        }
+
+        private async Task DetectFailuresAsync()
+        {
+            foreach (var node in _nodeRegistry.GetAllNodeStates())
+            {
+                if (node.IsTimeout(_suspectTimeoutTicks))
+                {
+                    node.IsSuspected = true;
+                }
+                else if (node.IsTimeout(_suspectTimeoutTicks) && node.IsSuspected)
+                {
+                    node.IsAlive = false;
+                }
+                if (node.IsMaster == true && node.IsAlive == false)
+                {
+                    await ElectMasterNodeAsync();
+                }
+            }
+        }
+
+
     }
 }

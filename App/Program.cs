@@ -16,7 +16,7 @@ var configuration = new SessionConfiguration(() =>
 
 var nodeRegistry = new NodeRegistry();
 nodeRegistry.RegisterNode(new NodeState("node1", "127.0.0.1:10081", 1));
-nodeRegistry.RegisterNode(new NodeState("node2", "127.0.0.1:10082", 2));
+//nodeRegistry.RegisterNode(new NodeState("node2", "127.0.0.1:10082", 2));
 
 var gossipTransport1 = new UdpGossipTransport(10081);
 var gossipTransport2 = new UdpGossipTransport(10082);

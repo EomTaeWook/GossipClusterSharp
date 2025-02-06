@@ -66,7 +66,7 @@ namespace GossipClusterSharp.Gossip
             var node = _nodeRegistry.GetNodeState(pongPayload.TargetNodeId);
             if (node != null)
             {
-                node.IncrementHeartbeat();
+                node.UpdateHeartbeat();
             }
             return Task.CompletedTask;
         }
@@ -126,7 +126,7 @@ namespace GossipClusterSharp.Gossip
                         await _gossipTransport.SendMessageAsync(pingMessage, node.Endpoint);
                     }
                 }
-                await Task.Delay(1000);
+                await Task.Delay(5000);
             }
 
         }
