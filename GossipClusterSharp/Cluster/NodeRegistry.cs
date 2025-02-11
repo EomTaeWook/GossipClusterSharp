@@ -32,15 +32,15 @@ namespace GossipClusterSharp.Cluster
 
             return node;
         }
-        public List<NodeState> GetRandomNode()
+        public List<NodeState> GetRandomNode(string localNodeId, int count)
         {
             if (_nodeStates.Count == 0)
             {
                 return null;
             }
 
-            var availableCount = Math.Min(2, _nodeStates.Count);
-            List<NodeState> nodes = new(_nodeStates.Values);
+            var availableCount = Math.Max(2, count);
+            List<NodeState> nodes = new(_nodeStates.Values.Where(r => r.NodeId != localNodeId));
             FisherYatesShuffle.Shuffle(nodes);
             return nodes.Take(availableCount).ToList();
         }
