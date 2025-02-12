@@ -6,4 +6,10 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="Dignus">
+      <HintPath>..\Dll\Dignus.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

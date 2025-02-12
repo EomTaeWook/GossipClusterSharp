@@ -1,7 +1,6 @@
 ﻿using GossipClusterSharp.Gossip.Interfaces;
+using GossipClusterSharp.Networks;
 using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
 
 namespace GossipClusterSharp.Gossip
 {
@@ -34,17 +33,14 @@ namespace GossipClusterSharp.Gossip
                 }
             }
         }
-        public async Task SendMessageAsync(GossipMessage message, string endPoint)
+        public async Task SendMessageAsync(Packet packet, string endPoint)
         {
             var parts = endPoint.Split(':');
             if (parts.Length != 2 || !int.TryParse(parts[1], out var port))
             {
-                throw new ArgumentException("invalid endpoint format. Expected format: IP:Port");
+                throw new ArgumentException("invalid endpoint format. expected format: IP:Port");
             }
-            var payload = JsonSerializer.Serialize(message);
-            var payloadBytes = Encoding.UTF8.GetBytes(payload);
-
-            await _udpClient.SendAsync(payloadBytes, payloadBytes.Length, parts[0], port);
+            await _udpClient.SendAsync(packet.ToByteArray(), parts[0], port);
         }
     }
 }

@@ -1,8 +1,10 @@
-﻿namespace GossipClusterSharp.Gossip.Interfaces
+﻿using GossipClusterSharp.Networks;
+
+namespace GossipClusterSharp.Gossip.Interfaces
 {
     public interface IGossipTransport
     {
-        Task SendMessageAsync(GossipMessage message, string targetEndPoint);
+        Task SendMessageAsync(Packet packet, string targetEndPoint);
 
         Task StartListeningAsync();
 

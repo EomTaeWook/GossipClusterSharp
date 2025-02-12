@@ -1,4 +1,5 @@
-﻿using GossipClusterSharp.Cluster;
+﻿using Dignus.Collections;
+using GossipClusterSharp.Cluster;
 using GossipClusterSharp.Gossip.Interfaces;
 using System.Net;
 using System.Text;
@@ -13,6 +14,8 @@ namespace GossipClusterSharp.Gossip
         private readonly string _localNodeId;
         private readonly IGossipTransport _gossipTransport;
         private readonly INodeRegistry _nodeRegistry;
+
+        private readonly ArrayQueue<byte> _receiveBuffer = [];
 
         private readonly Dictionary<GossipType, Func<GossipMessage, IPEndPoint, Task>> _handlers;
 
@@ -85,18 +88,37 @@ namespace GossipClusterSharp.Gossip
                 TargetNodeId = pingMessage.TargetNodeId
             });
 
-            await _gossipTransport.SendMessageAsync(pongMessage, senderEndPoint.ToString());
+            await _gossipTransport.SendMessageAsync(pongMessage.ToPacket(), senderEndPoint.ToString());
         }
 
-        private async Task OnMessageReceivedAsync(byte[] message, IPEndPoint senderEndPoint)
+        private async Task OnMessageReceivedAsync(byte[] bytes, IPEndPoint senderEndPoint)
         {
-            var json = Encoding.UTF8.GetString(message);
+            _receiveBuffer.AddRange(bytes);
+            var headerSize = sizeof(int);
+            if (_receiveBuffer.Count < headerSize)
+            {
+                return;
+            }
+
+            var packetSizeBytes = _receiveBuffer.Peek(headerSize);
+
+            var payloadSize = BitConverter.ToInt32(packetSizeBytes);
+
+            if (payloadSize > _receiveBuffer.Count)
+            {
+                return;
+            }
+
+            _receiveBuffer.Read(headerSize);
+            var payloadBytes = _receiveBuffer.Read(payloadSize);
+
+            var jsonString = Encoding.UTF8.GetString(payloadBytes);
             GossipMessage gossipMessage;
             try
             {
-                gossipMessage = JsonSerializer.Deserialize<GossipMessage>(json);
+                gossipMessage = JsonSerializer.Deserialize<GossipMessage>(jsonString);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return;
             }
@@ -125,7 +147,8 @@ namespace GossipClusterSharp.Gossip
                             TargetNodeId = node.NodeId
                         });
 
-                        await _gossipTransport.SendMessageAsync(pingMessage, node.Endpoint);
+                        await _gossipTransport.SendMessageAsync(pingMessage.ToPacket(),
+                            node.Endpoint);
                     }
                 }
                 await Task.Delay(5000);
@@ -148,7 +171,8 @@ namespace GossipClusterSharp.Gossip
             }
             foreach (var targetNode in targetNodes)
             {
-                await _gossipTransport.SendMessageAsync(message, targetNode.Endpoint);
+                await _gossipTransport.SendMessageAsync(message.ToPacket(),
+                    targetNode.Endpoint);
             }
         }
 
@@ -160,7 +184,7 @@ namespace GossipClusterSharp.Gossip
                 {
                     continue;
                 }
-                await _gossipTransport.SendMessageAsync(message, node.Endpoint);
+                await _gossipTransport.SendMessageAsync(message.ToPacket(), node.Endpoint);
             }
         }
     }
