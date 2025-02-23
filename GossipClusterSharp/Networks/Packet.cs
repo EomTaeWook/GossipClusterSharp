@@ -18,7 +18,7 @@ namespace GossipClusterSharp.Networks
             var packetBuffer = new ArrayQueue<byte>(sizeof(int) + PayloadSize);
             packetBuffer.AddRange(BitConverter.GetBytes(PayloadSize));
             packetBuffer.AddRange(Data);
-            return packetBuffer.ToArray();
+            return [.. packetBuffer];
         }
     }
 }

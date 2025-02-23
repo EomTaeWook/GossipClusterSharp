@@ -1,12 +1,11 @@
 ﻿namespace GossipClusterSharp.Gossip
 {
-    internal enum GossipType
+    public enum GossipType
     {
         None,
 
         Ping,
         Pong,
-        MasterElection,
 
         Max
     }

@@ -11,70 +11,24 @@ namespace GossipClusterSharp.Gossip
 
     public class GossipService
     {
-        private readonly string _localNodeId;
-        private readonly IGossipTransport _gossipTransport;
+        private readonly IGossipUdpTransport _gossipTransport;
         private readonly INodeRegistry _nodeRegistry;
 
         private readonly ArrayQueue<byte> _receiveBuffer = [];
+        private readonly GossipNode _localNode;
 
-        private readonly Dictionary<GossipType, Func<GossipMessage, IPEndPoint, Task>> _handlers;
-
-        public GossipService(string localNodeId,
-            IGossipTransport gossipTransports,
+        public GossipService(
+            IGossipUdpTransport gossipTransports,
             INodeRegistry nodeRegistry)
         {
-            _localNodeId = localNodeId;
             _nodeRegistry = nodeRegistry;
             _gossipTransport = gossipTransports;
-
             _gossipTransport.MessageReceived += OnMessageReceivedAsync;
 
-            _handlers = new Dictionary<GossipType, Func<GossipMessage, IPEndPoint, Task>>
-            {
-                { GossipType.Ping, HandlePingAsync },
-                { GossipType.Pong, HandlePongAsync },
-                { GossipType.MasterElection, HandleMasterElectionAsync }
-            };
-        }
-        private Task HandleMasterElectionAsync(GossipMessage message, IPEndPoint senderEndPoint)
-        {
-            var masterElectionMessage = message.GetPayload<MasterElectionMessage>();
-
-            if (masterElectionMessage == null)
-            {
-                return Task.CompletedTask;
-            }
-
-            var masterNode = _nodeRegistry.GetNodeState(masterElectionMessage.MasterNodeId);
-            if (masterNode == null)
-            {
-                return Task.CompletedTask;
-            }
-
-            foreach (var node in _nodeRegistry.GetAllNodeStates())
-            {
-                node.IsMaster = false;
-            }
-            masterNode.IsMaster = true;
-
-            return Task.CompletedTask;
+            var ipEndPoint = _gossipTransport.GetIPEndPoint();
+            _localNode = new GossipNode(ipEndPoint.Address.ToString(), ipEndPoint.Port);
         }
 
-        private Task HandlePongAsync(GossipMessage message, IPEndPoint senderEndPoint)
-        {
-            var pongPayload = message.GetPayload<PongMessage>();
-            if (pongPayload == null)
-            {
-                return Task.CompletedTask;
-            }
-
-            var node = _nodeRegistry.GetNodeState(pongPayload.TargetNodeId);
-            if (node != null)
-            {
-                node.UpdateHeartbeat();
-            }
-            return Task.CompletedTask;
-        }
         private async Task HandlePingAsync(GossipMessage message, IPEndPoint senderEndPoint)
         {
             var pingMessage = message.GetPayload<PingMessage>();
@@ -83,18 +37,34 @@ namespace GossipClusterSharp.Gossip
                 return;
             }
 
-            var pongMessage = GossipMessage.FromPayload(GossipType.Pong.ToString(), new PongMessage()
+            var pongMessage = GossipMessage.FromPayload(GossipType.Pong, new PongMessage()
             {
-                TargetNodeId = pingMessage.TargetNodeId
+                RespondingNodeId = _localNode.NodeId,
             });
 
-            await _gossipTransport.SendMessageAsync(pongMessage.ToPacket(), senderEndPoint.ToString());
+            await _gossipTransport.SendMessageAsync(pongMessage.ToPacket(), senderEndPoint);
+        }
+        private void HandlePongAsync(GossipMessage message)
+        {
+            var pongMessage = message.GetPayload<PongMessage>();
+            if (pongMessage == null)
+            {
+                return;
+            }
+
+            var node = _nodeRegistry.GetNode(pongMessage.RespondingNodeId);
+            if (node != null)
+            {
+                node.UpdateHeartbeat();
+                node.IsAlive = true;
+            }
         }
 
         private async Task OnMessageReceivedAsync(byte[] bytes, IPEndPoint senderEndPoint)
         {
             _receiveBuffer.AddRange(bytes);
             var headerSize = sizeof(int);
+
             if (_receiveBuffer.Count < headerSize)
             {
                 return;
@@ -111,7 +81,6 @@ namespace GossipClusterSharp.Gossip
 
             _receiveBuffer.Read(headerSize);
             var payloadBytes = _receiveBuffer.Read(payloadSize);
-
             var jsonString = Encoding.UTF8.GetString(payloadBytes);
             GossipMessage gossipMessage;
             try
@@ -123,32 +92,41 @@ namespace GossipClusterSharp.Gossip
                 return;
             }
 
-            if (Enum.TryParse<GossipType>(gossipMessage.MessageType, out GossipType gossipType) == false)
+            foreach (var node in gossipMessage.GossipNodes)
             {
-                return;
+                var findNode = _nodeRegistry.GetNode(node.NodeId);
+                if (findNode == null)
+                {
+                    _nodeRegistry.RegisterNode(new GossipNode(node.Ip, node.Port));
+                }
             }
 
-            if (_handlers.TryGetValue(gossipType, out var handler))
+            if (gossipMessage.MessageType == GossipType.Ping)
             {
-                await handler(gossipMessage, senderEndPoint);
+                await HandlePingAsync(gossipMessage, senderEndPoint);
+            }
+            else if (gossipMessage.MessageType == GossipType.Pong)
+            {
+                HandlePongAsync(gossipMessage);
             }
         }
         private async Task StartPingingAsync()
         {
             while (true)
             {
-                var targetNodes = _nodeRegistry.GetRandomNode(_localNodeId, 2);
+                var targetNodes = _nodeRegistry.GetRandomNode(2);
                 if (targetNodes != null)
                 {
+                    var knownNodes = _nodeRegistry.GetRandomNode(3);
+
                     foreach (var node in targetNodes)
                     {
-                        var pingMessage = GossipMessage.FromPayload(GossipType.Ping.ToString(), new PingMessage()
-                        {
-                            TargetNodeId = node.NodeId
-                        });
+                        var pingMessage = GossipMessage.FromPayload(GossipType.Ping, new PingMessage());
+
+                        pingMessage.GossipNodes.AddRange(knownNodes);
 
                         await _gossipTransport.SendMessageAsync(pingMessage.ToPacket(),
-                            node.Endpoint);
+                            node.EndPoint);
                     }
                 }
                 await Task.Delay(5000);
@@ -160,32 +138,6 @@ namespace GossipClusterSharp.Gossip
             var startListeningTask = _gossipTransport.StartListeningAsync();
             _ = StartPingingAsync();
             return startListeningTask;
-        }
-
-        public async Task SendMessageToRandomNodeAsync(GossipMessage message)
-        {
-            var targetNodes = _nodeRegistry.GetRandomNode(_localNodeId, 2);
-            if (targetNodes == null)
-            {
-                return;
-            }
-            foreach (var targetNode in targetNodes)
-            {
-                await _gossipTransport.SendMessageAsync(message.ToPacket(),
-                    targetNode.Endpoint);
-            }
-        }
-
-        public async Task BroadcastToAllNodesAsync(GossipMessage message)
-        {
-            foreach (var node in _nodeRegistry.GetAllNodeStates())
-            {
-                if (node.IsAlive == false)
-                {
-                    continue;
-                }
-                await _gossipTransport.SendMessageAsync(message.ToPacket(), node.Endpoint);
-            }
         }
     }
 }

@@ -15,14 +15,14 @@ var configuration = new SessionConfiguration(() =>
 
 
 var nodeRegistry = new NodeRegistry();
-nodeRegistry.RegisterNode(new NodeState("node1", "127.0.0.1:10081", 1));
-//nodeRegistry.RegisterNode(new NodeState("node2", "127.0.0.1:10082", 2));
+nodeRegistry.RegisterNode(new GossipNode("127.0.0.1", 10081));
+
 
 var gossipTransport1 = new UdpGossipTransport(10081);
 var gossipTransport2 = new UdpGossipTransport(10082);
 
-var gossipService1 = new GossipService("node1", gossipTransport1, nodeRegistry);
-var gossipService2 = new GossipService("node2", gossipTransport2, nodeRegistry);
+var gossipService1 = new GossipService(gossipTransport1, nodeRegistry);
+var gossipService2 = new GossipService(gossipTransport2, nodeRegistry);
 
 
 // ClusterManager 생성 및 초기화

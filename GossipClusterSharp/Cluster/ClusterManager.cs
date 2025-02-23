@@ -4,10 +4,11 @@ namespace GossipClusterSharp.Cluster
 {
     public class ClusterManager
     {
+        private const int FailureDetectionTimeout = 30;
+
         private readonly INodeRegistry _nodeRegistry;
-        private NodeState _currentMasterNode;
-        private List<GossipService> _gossipServices;
-        private static readonly long _suspectTimeoutTicks = TimeSpan.FromSeconds(30).Ticks;
+        private readonly List<GossipService> _gossipServices;
+
         public ClusterManager(INodeRegistry nodeRegistry, List<GossipService> gossipServices)
         {
             _nodeRegistry = nodeRegistry;
@@ -21,9 +22,7 @@ namespace GossipClusterSharp.Cluster
                 _ = gossipService.StartListeningAsync();
             }
 
-            await ElectMasterNodeAsync();
-
-            await MonitorNodesAsync();
+            await StartNodeMonitoringAsync();
         }
 
         private Task StartListeningAsync()
@@ -34,56 +33,24 @@ namespace GossipClusterSharp.Cluster
             }
             return Task.CompletedTask;
         }
-        private async Task ElectMasterNodeAsync()
-        {
-            var aliveNodes = _nodeRegistry.GetAllNodeStates()
-                                          .Where(n => n.IsAlive)
-                                          .OrderBy(n => n.Priority)
-                                          .ToList();
-
-            if (aliveNodes.Count == 0)
-            {
-                throw new InvalidOperationException("no alive nodes available for master election. cluster in DEGRADED state.");
-            }
-
-            var newMaster = aliveNodes.First();
-            _currentMasterNode = newMaster;
-
-            var message = new GossipMessage(GossipType.MasterElection.ToString(), newMaster.NodeId);
-            foreach (var gossipService in _gossipServices)
-            {
-                await gossipService.BroadcastToAllNodesAsync(message);
-            }
-        }
-
-        private async Task MonitorNodesAsync()
+        private async Task StartNodeMonitoringAsync()
         {
             while (true)
             {
-                await DetectFailuresAsync();
+                CheckNodeHealthAsync();
                 await Task.Delay(5000);
             }
         }
-
-        private async Task DetectFailuresAsync()
+        private void CheckNodeHealthAsync()
         {
-            foreach (var node in _nodeRegistry.GetAllNodeStates())
+            var now = DateTime.UtcNow;
+            foreach (var node in _nodeRegistry.GetAllNodes())
             {
-                if (node.IsTimeout(_suspectTimeoutTicks))
-                {
-                    node.IsSuspected = true;
-                }
-                else if (node.IsTimeout(_suspectTimeoutTicks) && node.IsSuspected)
+                if ((now - node.LastHeartbeat).TotalSeconds > FailureDetectionTimeout)
                 {
                     node.IsAlive = false;
                 }
-                if (node.IsMaster == true && node.IsAlive == false)
-                {
-                    await ElectMasterNodeAsync();
-                }
             }
         }
-
-
     }
 }

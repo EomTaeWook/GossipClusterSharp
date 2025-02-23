@@ -6,27 +6,29 @@ namespace GossipClusterSharp.Gossip
 {
     public interface IGossipPayload
     {
-
     }
+
     public class GossipMessage
     {
-        public string MessageType { get; private set; }
+        public GossipType MessageType { get; private set; }
         public DateTime Timestamp { get; private set; }
         public string PayloadJson { get; private set; }
-        public GossipMessage(string messageType, string payloadJson)
+
+        public List<GossipNode> GossipNodes { get; set; }
+        public GossipMessage(GossipType messageType, string payloadJson, List<GossipNode> gossipNodes)
         {
             MessageType = messageType;
             Timestamp = DateTime.UtcNow;
-
             PayloadJson = payloadJson;
+            GossipNodes = gossipNodes;
         }
         public T GetPayload<T>() where T : IGossipPayload
         {
             return JsonSerializer.Deserialize<T>(PayloadJson);
         }
-        public static GossipMessage FromPayload<T>(string messageType, T payload) where T : IGossipPayload
+        public static GossipMessage FromPayload<T>(GossipType messageType, T payload, List<GossipNode> gossipNodes = null) where T : IGossipPayload
         {
-            return new GossipMessage(messageType, JsonSerializer.Serialize(payload));
+            return new GossipMessage(messageType, JsonSerializer.Serialize(payload), gossipNodes);
         }
         public Packet ToPacket()
         {
@@ -37,11 +39,11 @@ namespace GossipClusterSharp.Gossip
 
     public class PingMessage : IGossipPayload
     {
-        public string TargetNodeId { get; set; }
+        public string RespondingNodeId { get; set; }
     }
     public class PongMessage : IGossipPayload
     {
-        public string TargetNodeId { get; set; }
+        public string RespondingNodeId { get; set; }
     }
     public class MasterElectionMessage : IGossipPayload
     {

@@ -1,18 +1,26 @@
 ﻿using GossipClusterSharp.Gossip.Interfaces;
 using GossipClusterSharp.Networks;
+using System.Net;
 using System.Net.Sockets;
 
 namespace GossipClusterSharp.Gossip
 {
-    public class UdpGossipTransport : IGossipTransport
+    public class UdpGossipTransport : IGossipUdpTransport
     {
         private readonly UdpClient _udpClient;
 
         public event GossipMessageHandler MessageReceived;
 
+        private readonly int _port;
         public UdpGossipTransport(int port)
         {
             _udpClient = new UdpClient(port);
+            _port = port;
+        }
+
+        public IPEndPoint GetIPEndPoint()
+        {
+            return new IPEndPoint(IPAddress.Any, _port);
         }
 
         public async Task StartListeningAsync()
@@ -33,14 +41,10 @@ namespace GossipClusterSharp.Gossip
                 }
             }
         }
-        public async Task SendMessageAsync(Packet packet, string endPoint)
+
+        public async Task SendMessageAsync(Packet packet, IPEndPoint targetEndPoint)
         {
-            var parts = endPoint.Split(':');
-            if (parts.Length != 2 || !int.TryParse(parts[1], out var port))
-            {
-                throw new ArgumentException("invalid endpoint format. expected format: IP:Port");
-            }
-            await _udpClient.SendAsync(packet.ToByteArray(), parts[0], port);
+            await _udpClient.SendAsync(packet.ToByteArray(), targetEndPoint);
         }
     }
 }

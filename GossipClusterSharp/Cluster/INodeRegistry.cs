@@ -4,11 +4,11 @@ namespace GossipClusterSharp.Cluster
 {
     public interface INodeRegistry
     {
-        void RegisterNode(NodeState node);
+        void RegisterNode(GossipNode node);
         void RemoveNode(string nodeId);
-        IEnumerable<NodeState> GetAllNodeStates();
-        NodeState GetNodeState(string nodeId);
-        List<NodeState> GetRandomNode(string localNodeId, int count);
+        IEnumerable<GossipNode> GetAllNodes();
+        GossipNode GetNode(string nodeId);
+        IEnumerable<GossipNode> GetRandomNode(int count);
         int GetAliveNodeCount();
     }
 }

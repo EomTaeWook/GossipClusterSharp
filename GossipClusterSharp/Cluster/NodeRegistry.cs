@@ -6,11 +6,11 @@ namespace GossipClusterSharp.Cluster
 {
     public class NodeRegistry : INodeRegistry
     {
-        private readonly Dictionary<string, NodeState> _nodeStates = new();
+        private readonly Dictionary<string, GossipNode> _nodes = new();
 
-        public void RegisterNode(NodeState node)
+        public void RegisterNode(GossipNode node)
         {
-            if (_nodeStates.TryAdd(node.NodeId, node) == false)
+            if (_nodes.TryAdd(node.NodeId, node) == false)
             {
                 throw new NodeAlreadyExistsException(node.NodeId);
             }
@@ -18,35 +18,38 @@ namespace GossipClusterSharp.Cluster
 
         public void RemoveNode(string nodeId)
         {
-            _nodeStates.Remove(nodeId);
+            _nodes.Remove(nodeId);
         }
 
-        public IEnumerable<NodeState> GetAllNodeStates()
+        public IEnumerable<GossipNode> GetAllNodes()
         {
-            return _nodeStates.Values;
+            return _nodes.Values;
         }
 
-        public NodeState GetNodeState(string nodeId)
+        public GossipNode GetNode(string nodeId)
         {
-            _nodeStates.TryGetValue(nodeId, out NodeState node);
+            _nodes.TryGetValue(nodeId, out GossipNode node);
 
             return node;
         }
-        public List<NodeState> GetRandomNode(string localNodeId, int count)
+        public IEnumerable<GossipNode> GetRandomNode(int count)
         {
-            if (_nodeStates.Count == 0)
+            if (_nodes.Count == 0)
             {
                 return null;
             }
-
             var availableCount = Math.Max(2, count);
-            List<NodeState> nodes = new(_nodeStates.Values.Where(r => r.NodeId != localNodeId));
+            List<GossipNode> nodes = new(_nodes.Count);
+            foreach (var node in _nodes.Values)
+            {
+                nodes.Add(node);
+            }
             FisherYatesShuffle.Shuffle(nodes);
-            return nodes.Take(availableCount).ToList();
+            return nodes.Take(availableCount);
         }
         public int GetAliveNodeCount()
         {
-            return _nodeStates.Values.Count(n => n.IsAlive);
+            return _nodes.Values.Count(n => n.IsAlive);
         }
     }
 }
