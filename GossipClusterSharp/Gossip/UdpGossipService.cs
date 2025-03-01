@@ -155,5 +155,10 @@ namespace GossipClusterSharp.Gossip
             _isRunning = true;
             return StartListeningAsync();
         }
+
+        public GossipNode GetLocalNode()
+        {
+            return _localNode;
+        }
     }
 }

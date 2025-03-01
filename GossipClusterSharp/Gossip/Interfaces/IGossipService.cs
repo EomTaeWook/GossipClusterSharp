@@ -2,6 +2,7 @@
 {
     public interface IGossipService
     {
+        GossipNode GetLocalNode();
         Task StartAsync();
 
         Task StopAsync();
