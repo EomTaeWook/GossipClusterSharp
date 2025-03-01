@@ -1,14 +1,14 @@
 ﻿using Dignus.Sockets;
 using Dignus.Sockets.Interfaces;
-using GossipClusterSharp.Gossip;
+using GossipClusterSharp.Gossip.Interfaces;
 
 namespace App.Node
 {
     internal class TestServer : ServerBase
     {
-        private GossipService _gossipService;
+        private IGossipService _gossipService;
         public TestServer(SessionConfiguration SessionConfiguration,
-            GossipService gossipService) : base(SessionConfiguration)
+            IGossipService gossipService) : base(SessionConfiguration)
         {
             _gossipService = gossipService;
 

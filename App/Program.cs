@@ -18,11 +18,8 @@ var nodeRegistry = new NodeRegistry();
 nodeRegistry.RegisterNode(new GossipNode("127.0.0.1", 10081));
 
 
-var gossipTransport1 = new UdpGossipTransport(10081);
-var gossipTransport2 = new UdpGossipTransport(10082);
-
-var gossipService1 = new GossipService(gossipTransport1, nodeRegistry);
-var gossipService2 = new GossipService(gossipTransport2, nodeRegistry);
+var gossipService1 = new UdpGossipService(10081, nodeRegistry);
+var gossipService2 = new UdpGossipService(10082, nodeRegistry);
 
 
 // ClusterManager 생성 및 초기화

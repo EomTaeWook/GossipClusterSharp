@@ -1,6 +1,7 @@
 ﻿using Dignus.Collections;
 using GossipClusterSharp.Cluster;
 using GossipClusterSharp.Gossip.Interfaces;
+using GossipClusterSharp.Gossip.Transport;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -9,7 +10,7 @@ namespace GossipClusterSharp.Gossip
 {
     public delegate Task GossipMessageHandler(byte[] message, IPEndPoint senderEndPoint);
 
-    public class GossipService
+    public class UdpGossipService : IGossipService
     {
         private readonly IGossipUdpTransport _gossipTransport;
         private readonly INodeRegistry _nodeRegistry;
@@ -17,12 +18,12 @@ namespace GossipClusterSharp.Gossip
         private readonly ArrayQueue<byte> _receiveBuffer = [];
         private readonly GossipNode _localNode;
 
-        public GossipService(
-            IGossipUdpTransport gossipTransports,
+        public UdpGossipService(
+            int port,
             INodeRegistry nodeRegistry)
         {
             _nodeRegistry = nodeRegistry;
-            _gossipTransport = gossipTransports;
+            _gossipTransport = new UdpGossipTransport(port);
             _gossipTransport.MessageReceived += OnMessageReceivedAsync;
 
             var ipEndPoint = _gossipTransport.GetIPEndPoint();
@@ -133,11 +134,16 @@ namespace GossipClusterSharp.Gossip
             }
 
         }
-        public Task StartListeningAsync()
+        private Task StartListeningAsync()
         {
             var startListeningTask = _gossipTransport.StartListeningAsync();
             _ = StartPingingAsync();
             return startListeningTask;
+        }
+
+        public Task StartAsync()
+        {
+            return StartListeningAsync();
         }
     }
 }

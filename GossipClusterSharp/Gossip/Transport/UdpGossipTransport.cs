@@ -3,7 +3,7 @@ using GossipClusterSharp.Networks;
 using System.Net;
 using System.Net.Sockets;
 
-namespace GossipClusterSharp.Gossip
+namespace GossipClusterSharp.Gossip.Transport
 {
     public class UdpGossipTransport : IGossipUdpTransport
     {

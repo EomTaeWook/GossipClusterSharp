@@ -1,4 +1,4 @@
-﻿using GossipClusterSharp.Gossip;
+﻿using GossipClusterSharp.Gossip.Interfaces;
 
 namespace GossipClusterSharp.Cluster
 {
@@ -7,9 +7,9 @@ namespace GossipClusterSharp.Cluster
         private const int FailureDetectionTimeout = 30;
 
         private readonly INodeRegistry _nodeRegistry;
-        private readonly List<GossipService> _gossipServices;
+        private readonly List<IGossipService> _gossipServices;
 
-        public ClusterManager(INodeRegistry nodeRegistry, List<GossipService> gossipServices)
+        public ClusterManager(INodeRegistry nodeRegistry, List<IGossipService> gossipServices)
         {
             _nodeRegistry = nodeRegistry;
             _gossipServices = gossipServices;
@@ -19,19 +19,10 @@ namespace GossipClusterSharp.Cluster
         {
             foreach (var gossipService in _gossipServices)
             {
-                _ = gossipService.StartListeningAsync();
+                _ = gossipService.StartAsync();
             }
 
             await StartNodeMonitoringAsync();
-        }
-
-        private Task StartListeningAsync()
-        {
-            foreach (var gossipService in _gossipServices)
-            {
-                _ = gossipService.StartListeningAsync();
-            }
-            return Task.CompletedTask;
         }
         private async Task StartNodeMonitoringAsync()
         {
