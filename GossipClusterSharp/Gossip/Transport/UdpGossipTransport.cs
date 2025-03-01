@@ -10,7 +10,7 @@ namespace GossipClusterSharp.Gossip.Transport
         public event GossipMessageHandler MessageReceived;
 
         private UdpClient _udpClient;
-        private readonly int _port;
+        private int _port;
         public UdpGossipTransport(int port)
         {
             _port = port;
