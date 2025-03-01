@@ -7,15 +7,31 @@ namespace GossipClusterSharp.Gossip.Transport
 {
     public class UdpGossipTransport : IGossipUdpTransport
     {
-        private readonly UdpClient _udpClient;
-
         public event GossipMessageHandler MessageReceived;
 
+        private UdpClient _udpClient;
         private readonly int _port;
         public UdpGossipTransport(int port)
         {
-            _udpClient = new UdpClient(port);
             _port = port;
+            _udpClient = new UdpClient(port);
+        }
+
+        public void Dispose()
+        {
+            _udpClient.Dispose();
+            _udpClient = null;
+            GC.SuppressFinalize(this);
+        }
+
+        public Task StopAsync()
+        {
+            if (_udpClient != null)
+            {
+                _udpClient.Close();
+            }
+
+            return Task.CompletedTask;
         }
 
         public IPEndPoint GetIPEndPoint()
@@ -41,7 +57,6 @@ namespace GossipClusterSharp.Gossip.Transport
                 }
             }
         }
-
         public async Task SendMessageAsync(Packet packet, IPEndPoint targetEndPoint)
         {
             await _udpClient.SendAsync(packet.ToByteArray(), targetEndPoint);

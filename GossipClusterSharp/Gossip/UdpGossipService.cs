@@ -18,6 +18,8 @@ namespace GossipClusterSharp.Gossip
         private readonly ArrayQueue<byte> _receiveBuffer = [];
         private readonly GossipNode _localNode;
 
+        private bool _isRunning;
+
         public UdpGossipService(
             int port,
             INodeRegistry nodeRegistry)
@@ -29,7 +31,10 @@ namespace GossipClusterSharp.Gossip
             var ipEndPoint = _gossipTransport.GetIPEndPoint();
             _localNode = new GossipNode(ipEndPoint.Address.ToString(), ipEndPoint.Port);
         }
-
+        public async Task StopAsync()
+        {
+            await _gossipTransport.StopAsync();
+        }
         private async Task HandlePingAsync(GossipMessage message, IPEndPoint senderEndPoint)
         {
             var pingMessage = message.GetPayload<PingMessage>();
@@ -143,6 +148,11 @@ namespace GossipClusterSharp.Gossip
 
         public Task StartAsync()
         {
+            if (_isRunning == true)
+            {
+                throw new InvalidOperationException("gossip service is already started.");
+            }
+            _isRunning = true;
             return StartListeningAsync();
         }
     }

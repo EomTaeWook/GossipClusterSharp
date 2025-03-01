@@ -3,12 +3,13 @@ using System.Net;
 
 namespace GossipClusterSharp.Gossip.Interfaces
 {
-    public interface IGossipUdpTransport
+    public interface IGossipUdpTransport : IDisposable
     {
-        Task SendMessageAsync(Packet packet, IPEndPoint targetEndPoint);
-        Task StartListeningAsync();
         public event GossipMessageHandler MessageReceived;
 
+        Task SendMessageAsync(Packet packet, IPEndPoint targetEndPoint);
+        Task StartListeningAsync();
+        Task StopAsync();
         public IPEndPoint GetIPEndPoint();
     }
 }
