@@ -4,7 +4,6 @@
     {
         GossipNode GetLocalNode();
         Task StartAsync();
-
         Task StopAsync();
     }
 }

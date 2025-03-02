@@ -20,6 +20,7 @@ namespace GossipClusterSharp.Gossip
 
         private bool _isRunning;
 
+        private readonly Dictionary<string, Func<GossipMessage, IPEndPoint, Task>> _customHandlers = [];
         public UdpGossipService(
             int port,
             INodeRegistry nodeRegistry)
@@ -30,7 +31,15 @@ namespace GossipClusterSharp.Gossip
 
             var ipEndPoint = _gossipTransport.GetIPEndPoint();
             _localNode = new GossipNode(ipEndPoint.Address.ToString(), ipEndPoint.Port);
+
+            RegisterMessageHandler("Ping", HandlePingAsync);
+            RegisterMessageHandler("Pong", HandlePongAsync);
         }
+        public void RegisterMessageHandler(string messageType, Func<GossipMessage, IPEndPoint, Task> handler)
+        {
+            _customHandlers.Add(messageType, handler);
+        }
+
         public async Task StopAsync()
         {
             await _gossipTransport.StopAsync();
@@ -50,12 +59,12 @@ namespace GossipClusterSharp.Gossip
 
             await _gossipTransport.SendMessageAsync(pongMessage.ToPacket(), senderEndPoint);
         }
-        private void HandlePongAsync(GossipMessage message)
+        private Task HandlePongAsync(GossipMessage message, IPEndPoint _)
         {
             var pongMessage = message.GetPayload<PongMessage>();
             if (pongMessage == null)
             {
-                return;
+                return Task.CompletedTask;
             }
 
             var node = _nodeRegistry.GetNode(pongMessage.RespondingNodeId);
@@ -64,6 +73,8 @@ namespace GossipClusterSharp.Gossip
                 node.UpdateHeartbeat();
                 node.IsAlive = true;
             }
+
+            return Task.CompletedTask;
         }
 
         private async Task OnMessageReceivedAsync(byte[] bytes, IPEndPoint senderEndPoint)
@@ -107,13 +118,9 @@ namespace GossipClusterSharp.Gossip
                 }
             }
 
-            if (gossipMessage.MessageType == GossipType.Ping)
+            if (_customHandlers.TryGetValue(gossipMessage.MessageType, out Func<GossipMessage, IPEndPoint, Task> handler) == true)
             {
-                await HandlePingAsync(gossipMessage, senderEndPoint);
-            }
-            else if (gossipMessage.MessageType == GossipType.Pong)
-            {
-                HandlePongAsync(gossipMessage);
+                await handler(gossipMessage, senderEndPoint);
             }
         }
         private async Task StartPingingAsync()
