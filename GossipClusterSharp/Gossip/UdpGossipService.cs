@@ -167,5 +167,10 @@ namespace GossipClusterSharp.Gossip
         {
             return _localNode;
         }
+
+        public Task SendAsync(GossipMessage message, GossipNode targetNode)
+        {
+            return _gossipTransport.SendMessageAsync(message.ToPacket(), targetNode.EndPoint);
+        }
     }
 }
