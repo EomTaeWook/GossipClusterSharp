@@ -23,7 +23,7 @@ var gossipService2 = new UdpGossipService(10082, nodeRegistry);
 
 
 // ClusterManager 생성 및 초기화
-var clusterManager = new ClusterManager(nodeRegistry, [gossipService1, gossipService2]);
+var clusterManager = new ClusterManager(nodeRegistry);
 _ = clusterManager.InitializeClusterAsync();
 
 var node1 = new TestServer(configuration, gossipService1);

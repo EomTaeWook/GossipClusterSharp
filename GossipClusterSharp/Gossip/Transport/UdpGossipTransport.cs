@@ -14,7 +14,7 @@ namespace GossipClusterSharp.Gossip.Transport
         public UdpGossipTransport(int port)
         {
             _port = port;
-            _udpClient = new UdpClient(port);
+            _udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, port));
         }
 
         public void Dispose()

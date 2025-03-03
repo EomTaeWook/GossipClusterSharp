@@ -1,6 +1,7 @@
 ﻿using GossipClusterSharp.Networks;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace GossipClusterSharp.Gossip
 {
@@ -15,6 +16,12 @@ namespace GossipClusterSharp.Gossip
         public string PayloadJson { get; private set; }
 
         public List<GossipNode> GossipNodes { get; set; }
+
+        [JsonConstructor]
+        public GossipMessage()
+        {
+        }
+
         public GossipMessage(string messageType, string payloadJson, List<GossipNode> gossipNodes)
         {
             MessageType = messageType;
@@ -34,9 +41,9 @@ namespace GossipClusterSharp.Gossip
         {
             return new GossipMessage(messageType, JsonSerializer.Serialize(payload), gossipNodes);
         }
-        public Packet ToPacket()
+        public static Packet ToPacket<T>(T obj)
         {
-            var json = JsonSerializer.Serialize(this);
+            var json = JsonSerializer.Serialize(obj);
             return new Packet(Encoding.UTF8.GetBytes(json));
         }
     }

@@ -1,10 +1,12 @@
 ﻿using Dignus.Collections;
+using GossipClusterSharp.Gossip;
 using GossipClusterSharp.Gossip.Interfaces;
 
 namespace GossipClusterSharp.Cluster
 {
     public class ClusterManager
     {
+        public INodeRegistry NodeRegistry => _nodeRegistry;
         private const int FailureDetectionTimeout = 30;
 
         private readonly INodeRegistry _nodeRegistry;
@@ -14,15 +16,14 @@ namespace GossipClusterSharp.Cluster
         {
             _nodeRegistry = nodeRegistry;
         }
-        public ClusterManager(INodeRegistry nodeRegistry, List<IGossipService> gossipServices)
-        {
-            _nodeRegistry = nodeRegistry;
-            _gossipServices.AddRange(gossipServices);
-        }
         public void AddGossipService(IGossipService gossipService)
         {
-            _nodeRegistry.RegisterNode(gossipService.GetLocalNode());
             _gossipServices.Add(gossipService);
+            AddGossipNode(gossipService.GetLocalNode());
+        }
+        public void AddGossipNode(GossipNode gossipNode)
+        {
+            _nodeRegistry.RegisterNode(gossipNode);
         }
         public async Task InitializeClusterAsync()
         {
@@ -30,7 +31,6 @@ namespace GossipClusterSharp.Cluster
             {
                 _ = gossipService.StartAsync();
             }
-
             await StartNodeMonitoringAsync();
         }
         private async Task StartNodeMonitoringAsync()

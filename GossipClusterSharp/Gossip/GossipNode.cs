@@ -1,28 +1,34 @@
 ﻿using System.Net;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace GossipClusterSharp.Gossip
 {
     public class GossipNode
     {
-        public string NodeId { get; private set; }
-        public string Ip { get; }
-        public int Port { get; }
+        public string NodeId { get; init; }
+        public string Ip { get; init; }
+        public int Port { get; init; }
         public bool IsAlive { get; set; } = true;
+        [JsonIgnore]
         public DateTime LastHeartbeat { get; private set; } = DateTime.UtcNow;
 
-        public IPEndPoint EndPoint { get; private set; }
-        public GossipNode(string ipString, int port) : this(IPAddress.Parse(ipString), port)
+        private readonly IPEndPoint _ipEndPoint;
+        public GossipNode()
         {
         }
-        public GossipNode(IPAddress address, int port)
+        public GossipNode(string ipString, int port)
         {
-            var ipString = address.ToString();
             NodeId = GenerateNodeId(ipString, port);
             Ip = ipString;
             Port = port;
-            EndPoint = new IPEndPoint(address, port);
+            _ipEndPoint = new IPEndPoint(IPAddress.Parse(ipString), port);
+        }
+
+        public IPEndPoint GetEndPoint()
+        {
+            return _ipEndPoint;
         }
         public void UpdateHeartbeat()
         {

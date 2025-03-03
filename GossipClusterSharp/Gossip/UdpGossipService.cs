@@ -3,6 +3,8 @@ using GossipClusterSharp.Cluster;
 using GossipClusterSharp.Gossip.Interfaces;
 using GossipClusterSharp.Gossip.Transport;
 using System.Net;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.Json;
 
@@ -12,7 +14,8 @@ namespace GossipClusterSharp.Gossip
 
     public class UdpGossipService : IGossipService
     {
-        private readonly IGossipUdpTransport _gossipTransport;
+        public INodeRegistry NodeRegistry => _nodeRegistry;
+        private readonly UdpGossipTransport _gossipTransport;
         private readonly INodeRegistry _nodeRegistry;
 
         private readonly ArrayQueue<byte> _receiveBuffer = [];
@@ -29,11 +32,29 @@ namespace GossipClusterSharp.Gossip
             _gossipTransport = new UdpGossipTransport(port);
             _gossipTransport.MessageReceived += OnMessageReceivedAsync;
 
-            var ipEndPoint = _gossipTransport.GetIPEndPoint();
-            _localNode = new GossipNode(ipEndPoint.Address.ToString(), ipEndPoint.Port);
+            var localIp = GetLocalIPAddress();
+            _localNode = new GossipNode(localIp, port);
 
             RegisterMessageHandler("Ping", HandlePingAsync);
             RegisterMessageHandler("Pong", HandlePongAsync);
+        }
+        private string GetLocalIPAddress()
+        {
+            string localIP = "127.0.0.1";
+            foreach (var netInterface in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (netInterface.OperationalStatus == OperationalStatus.Up)
+                {
+                    foreach (var ip in netInterface.GetIPProperties().UnicastAddresses)
+                    {
+                        if (ip.Address.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(ip.Address))
+                        {
+                            return ip.Address.ToString();
+                        }
+                    }
+                }
+            }
+            return localIP;
         }
         public void RegisterMessageHandler(string messageType, Func<GossipMessage, IPEndPoint, Task> handler)
         {
@@ -57,7 +78,7 @@ namespace GossipClusterSharp.Gossip
                 RespondingNodeId = _localNode.NodeId,
             });
 
-            await _gossipTransport.SendMessageAsync(pongMessage.ToPacket(), senderEndPoint);
+            await _gossipTransport.SendMessageAsync(GossipMessage.ToPacket(pongMessage), senderEndPoint);
         }
         private Task HandlePongAsync(GossipMessage message, IPEndPoint _)
         {
@@ -138,8 +159,8 @@ namespace GossipClusterSharp.Gossip
 
                         pingMessage.GossipNodes.AddRange(knownNodes);
 
-                        await _gossipTransport.SendMessageAsync(pingMessage.ToPacket(),
-                            node.EndPoint);
+                        await _gossipTransport.SendMessageAsync(GossipMessage.ToPacket(pingMessage),
+                            node.GetEndPoint());
                     }
                 }
                 await Task.Delay(5000);
@@ -170,7 +191,7 @@ namespace GossipClusterSharp.Gossip
 
         public Task SendAsync(GossipMessage message, GossipNode targetNode)
         {
-            return _gossipTransport.SendMessageAsync(message.ToPacket(), targetNode.EndPoint);
+            return _gossipTransport.SendMessageAsync(GossipMessage.ToPacket(message), targetNode.GetEndPoint());
         }
     }
 }
