@@ -20,7 +20,7 @@ namespace GossipClusterSharp.Gossip
             MessageType = messageType;
             Timestamp = DateTime.UtcNow;
             PayloadJson = payloadJson;
-            GossipNodes = gossipNodes;
+            GossipNodes = gossipNodes ?? [];
         }
         public T GetPayload<T>() where T : IGossipPayload
         {
