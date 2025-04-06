@@ -25,6 +25,20 @@ namespace GossipClusterSharp.Gossip
 
         private readonly Dictionary<string, Func<GossipMessage, IPEndPoint, Task>> _customHandlers = [];
         public UdpGossipService(
+            string serverIpString,
+            int port,
+            INodeRegistry nodeRegistry)
+        {
+            _nodeRegistry = nodeRegistry;
+            _gossipTransport = new UdpGossipTransport(port);
+            _gossipTransport.MessageReceived += OnMessageReceivedAsync;
+
+            _localNode = new GossipNode(serverIpString, port);
+
+            RegisterMessageHandler("Ping", HandlePingAsync);
+            RegisterMessageHandler("Pong", HandlePongAsync);
+        }
+        public UdpGossipService(
             int port,
             INodeRegistry nodeRegistry)
         {
@@ -165,7 +179,6 @@ namespace GossipClusterSharp.Gossip
                 }
                 await Task.Delay(5000);
             }
-
         }
         private Task StartListeningAsync()
         {

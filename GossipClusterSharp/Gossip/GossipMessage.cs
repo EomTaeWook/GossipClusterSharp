@@ -1,4 +1,5 @@
-﻿using GossipClusterSharp.Networks;
+﻿using Dignus.Collections;
+using GossipClusterSharp.Networks;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -15,7 +16,7 @@ namespace GossipClusterSharp.Gossip
         public DateTime Timestamp { get; private set; }
         public string PayloadJson { get; private set; }
 
-        public List<GossipNode> GossipNodes { get; set; }
+        public ArrayQueue<GossipNode> GossipNodes { get; set; } = new();
 
         [JsonConstructor]
         public GossipMessage()
@@ -27,7 +28,11 @@ namespace GossipClusterSharp.Gossip
             MessageType = messageType;
             Timestamp = DateTime.UtcNow;
             PayloadJson = payloadJson;
-            GossipNodes = gossipNodes ?? [];
+            if (gossipNodes != null)
+            {
+                GossipNodes.AddRange(gossipNodes);
+            }
+
         }
         public T GetPayload<T>() where T : IGossipPayload
         {
